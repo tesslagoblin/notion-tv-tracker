@@ -6,12 +6,14 @@ through-lines you are actually chasing beyond broad genre buckets.
 
 Writes shows_keywords.json: { tmdb_id: {"name": str, "keywords": [str], "status": str, "favorite": bool} }
 """
-import os, json, subprocess, time, urllib.parse, sys
-from notion_client import notion, tmdb_key
+import os, json, subprocess, time, urllib.parse
+from notion_client import notion, load_db_ids, tmdb_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TMDB_API_KEY = tmdb_key()
+
+SHOWS_DS = load_db_ids()['shows']['data_source_id']
 
 
 def tmdb(path, params=None):

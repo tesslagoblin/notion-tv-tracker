@@ -7,8 +7,8 @@ Run order:
                                                 depend on it
 
 Notion's 2025-09-03 API splits databases into a database_id and a data_source_id.
-Create pages against the database_id, query against the data_source_id. Both get
-saved into db_ids.json for the other scripts to read.
+The schema lives on the data source, and pages are created and queried against
+the data_source_id. Both ids get saved into db_ids.json for the other scripts.
 """
 import os
 import json
@@ -80,7 +80,8 @@ def create_shows_db():
         'title': title('Shows'),
         'icon': {'type': 'emoji', 'emoji': '📺'},
         'is_inline': False,
-        'properties': {
+        # 2025-09-03 API: the schema lives on the initial data source, not the database.
+        'initial_data_source': {'properties': {
             'Name': {'title': {}},
             'Status': {'select': {'options': STATUS_OPTIONS}},
             'Fav': {'checkbox': {}},
@@ -110,7 +111,7 @@ def create_shows_db():
             'Notes': {'rich_text': {}},
             'Added': {'created_time': {}},
             'Available Now': {'formula': {'expression': AVAILABLE_NOW_FORMULA}},
-        },
+        }},
     })
 
 
@@ -120,7 +121,7 @@ def create_episodes_db():
         'title': title('Episodes'),
         'icon': {'type': 'emoji', 'emoji': '🎬'},
         'is_inline': False,
-        'properties': {
+        'initial_data_source': {'properties': {
             'Name': {'title': {}},
             'Season': {'number': {'format': 'number'}},
             'Episode': {'number': {'format': 'number'}},
@@ -131,7 +132,7 @@ def create_episodes_db():
             'Rating': {'select': {'options': STARS}},
             'TMDB ID': {'number': {'format': 'number'}},
             'Notes': {'rich_text': {}},
-        },
+        }},
     })
 
 
@@ -170,7 +171,11 @@ def db_id(r):
 
 
 def data_source_id(r):
+    """The create response carries data_sources: [{id, name}]. A new database
+    has exactly one. If it is missing for any reason, fetch the database again."""
     ds = r.get('data_sources')
+    if not ds and r.get('id'):
+        ds = notion('GET', f'/databases/{r["id"]}').get('data_sources')
     if ds and isinstance(ds, list):
         return ds[0].get('id')
     return None
@@ -191,6 +196,10 @@ if __name__ == '__main__':
             raise SystemExit(1)
         out[label] = {'database_id': db_id(r), 'data_source_id': data_source_id(r)}
         print(' ', out[label])
+        if not out[label]['data_source_id']:
+            print('  no data_source_id in the response. Check NOTION_API_KEY and that the')
+            print('  integration can see the parent page, then delete the half-made database.')
+            raise SystemExit(1)
 
     with open(DB_IDS, 'w') as f:
         json.dump(out, f, indent=2)

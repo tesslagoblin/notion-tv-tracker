@@ -5,15 +5,35 @@ For each show:
 - Set Watched Count = aired episodes (last_episode_to_air's absolute number,
   or number_of_episodes if the show has ended)
 - Ended shows → Status = Finished
-- Returning shows → Status = Watching + Current S/E = last aired episode label
+- Returning shows → Status = Returning + Current S/E = last aired episode label
 - Check off all to_do blocks in page body up to & including last aired episode
+
+Usage: edit TARGETS below, then python3 mark_caught_up.py
 """
 import os, json, sys, subprocess, time, re
-from notion_client import notion, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# The shows to mark as caught up, spelled exactly as the Name in Notion.
+# Example:
+#   TARGETS = [
+#       'Gilmore Girls',
+#       'Parks and Recreation',
+#   ]
+TARGETS = []
+
+# Episode labels are written as S03E10 (zero padded) in Current S/E and in the
+# page-body checkboxes ("S03E10 - Title"). Also accepts S3E10 and s3e10.
+SE_RE = re.compile(r'S(\d{1,3})\s*E(\d{1,4})', re.IGNORECASE)
+
+if __name__ == '__main__' and not TARGETS:
+    sys.exit('TARGETS is empty. Open mark_caught_up.py, list the show names you want\n'
+             'marked as caught up in TARGETS near the top, then run it again.')
+
 TMDB_API_KEY = tmdb_key()
+
+SHOWS_DS = load_db_ids()['shows']['data_source_id']
 
 
 def tmdb(path):
@@ -27,7 +47,7 @@ def tmdb(path):
 def find_show(name):
     r = notion('POST', f'/data_sources/{SHOWS_DS}/query',
         {'filter': {'property': 'Name', 'title': {'equals': name}}, 'page_size': 2})
-    return r.get('results', [None])[0]
+    return (r.get('results') or [None])[0]
 
 
 def aired_episode_count(tmdb_id):
@@ -108,7 +128,7 @@ def main():
             'Watched Count': {'number': aired},
             'Status': {'select': {'name': new_status}},
         }
-        if new_status == 'Watching' and last_se:
+        if new_status == 'Returning' and last_se:
             props['Current S/E'] = {'rich_text': [{'type': 'text', 'text': {'content': last_se}}]}
 
         notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})

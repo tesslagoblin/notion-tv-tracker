@@ -14,7 +14,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TMDB_API_KEY = tmdb_key()
 TMDB_BASE = 'https://api.themoviedb.org/3'
 
-SHOWS_DS = load_db_ids()['shows']['data_source_id']
+ids = load_db_ids()
+SHOWS_DS = ids['shows']['data_source_id']
 EPS_DS = ids['episodes']['data_source_id']
 
 
@@ -143,7 +144,7 @@ def main():
         results = find_show(query)
 
     if not results:
-        print(f'No matching show found.')
+        print('No matching show found.')
         sys.exit(1)
 
     for show_page in results[:1]:

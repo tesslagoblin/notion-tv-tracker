@@ -7,8 +7,9 @@ A vibe is a small, opinionated descriptor of what a show *feels* like:
 `Dark Comedy`, `Chaotic Woman`, `British Awkward`, `Teen Soap`, `Killer Costumes`,
 `Sad Girl`, `Y2K Nostalgia`, `Found Family`. There are 29 in `vibe_bank.py`.
 
-A show can carry five of them. That is the point. Stacking tags across a whole
-library builds a map of your taste that genre never could.
+There is no cap. A show gets every vibe that matches, so most land on two or
+three and a few rack up many more. That is the point. Stacking tags across a
+whole library builds a map of your taste that genre never could.
 
 ## How a show gets tagged
 

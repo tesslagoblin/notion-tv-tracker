@@ -7,6 +7,8 @@ scripts/taste_profile.json
 scripts/shows_keywords.json
 scripts/past_discovers.json
 scripts/last_discover.json
+scripts/hydrate_results.json
+scripts/vibe_tag_results.json
 scripts/*.log
 
 # Python

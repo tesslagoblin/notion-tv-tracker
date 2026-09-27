@@ -26,19 +26,33 @@ It always prints the matched title and year, so a bad match is visible. Use
 
 ## Track progress
 
-Either edit `Current S/E` and `Watched Count` in Notion directly, or check off
-episode rows and let the rollup do it.
+Either edit `Current S/E` and `Watched Count` in Notion directly, or give the
+show a checklist of episodes and tick them off as you go.
 
-    python3 hydrate_episodes.py "Show Name"   # pull episode rows from TMDB
-    python3 sync_watched_count.py             # read checkboxes -> Watched Count
+    python3 hydrate_episodes.py "Show Name"   # pull episode rows from TMDB into Episodes
+    python3 episodes_to_checkboxes.py         # turn those rows into checkboxes on the show page
+    python3 sync_watched_count.py             # count ticked checkboxes -> Watched Count
 
-`sync_watched_count.py` only writes Watched Count for shows that actually have
-episode rows, so it will not stomp on numbers you set by hand elsewhere.
+`episodes_to_checkboxes.py` works on every show with Status `Watching`. It
+writes one `S01E01 - Title` checkbox per episode into the show's page, grouped
+by season, then deletes the Episode rows it converted.
+
+`sync_watched_count.py` looks at every show that is `Watching` or `Paused` and
+reads the checkboxes in the page body, not the Episodes database. It writes the
+number ticked to Watched Count and the first unticked episode to Next Episode.
+When Watched Count reaches Total Episodes, a `Watching` show flips to
+`Finished` (Return Status is Ended) or `Returning` (anything else). It only
+writes Watched Count for shows that actually have checkboxes, so it will not
+stomp on numbers you set by hand elsewhere.
 
 For a show you finished long ago and never want to click through:
 
     # edit TARGETS in the file first
     python3 mark_caught_up.py
+
+It sets Watched Count to every aired episode, ticks any episode checkboxes up
+to the latest one, and sets Status to `Finished` or `Returning`. With `TARGETS`
+empty it stops and tells you to fill it in.
 
 ## Check your tagging
 
@@ -52,7 +66,7 @@ show to a vibe's `shows` whitelist in `vibe_bank.py`, then re-run the tagger.
 
     python3 08_taste_profile.py     # rebuild taste weights from the library
     python3 09_weekly_discover.py   # dry run, prints the digest
-    python3 09_weekly_discover.py --post
+    python3 09_weekly_discover.py --post   # sends to DISCORD_WEBHOOK_URL
     python3 10_check_returns.py     # new seasons for shows you are caught up on
 
 I run the last two on a Sunday morning cron. `09` keeps a six week rolling

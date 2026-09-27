@@ -8,15 +8,17 @@ For each show:
 
 Also flags upcoming returns for shows you have caught up on.
 
-Usage: python3 13_check_returns.py [--limit N] [--verbose]
+Usage: python3 10_check_returns.py [--limit N] [--verbose]
 """
 import os, json, sys, subprocess, time
 from datetime import date
-from notion_client import notion, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TMDB_API_KEY = tmdb_key()
+
+SHOWS_DS = load_db_ids()['shows']['data_source_id']
 
 
 def tmdb(tmdb_id):
@@ -87,7 +89,7 @@ def main():
             print(f'  {title}: status={tmdb_status}, next={next_date}, eps={total_ep}→{new_total}')
 
         # Flag upcoming returns for shows you are caught up on
-        if next_date and next_date >= today and status_now in ('Watching', 'Paused', 'Finished'):
+        if next_date and next_date >= today and status_now in ('Watching', 'Returning', 'Paused', 'Finished'):
             caught_up = watched_count >= total_ep and total_ep > 0
             upcoming.append((next_date, title, next_ep, caught_up, status_now))
 

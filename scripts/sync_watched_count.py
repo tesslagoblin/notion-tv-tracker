@@ -11,7 +11,7 @@ For each show with Status in {Watching, Paused}:
 
 Idempotent - safe to run repeatedly.
 """
-import os, json
+import os
 from notion_client import notion, load_db_ids
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

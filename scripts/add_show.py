@@ -19,7 +19,7 @@ After creation, run these to complete hydration:
   python3 03_streaming_hydrate.py
   python3 05_fetch_keywords.py && python3 07_auto_vibe_tag.py --all
 """
-import os, sys, json, subprocess, time, re, urllib.parse
+import os, sys, json, subprocess, time, urllib.parse
 from notion_client import notion, load_db_ids, tmdb_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

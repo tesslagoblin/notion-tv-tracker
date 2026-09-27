@@ -4,7 +4,6 @@ Gallery view previews read the page cover, not the Poster property. Shows added
 without a cover show blank cards. This backfills.
 """
 import os
-import json
 from notion_client import notion, load_db_ids
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

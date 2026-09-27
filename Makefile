@@ -14,9 +14,9 @@ help:
 	@echo "make vibes     - report on vibe coverage, list untagged shows"
 	@echo "make taste     - rebuild the taste profile"
 	@echo "make digest    - dry run this week's recommendations"
-	@echo "make post      - send this week's recommendations"
+	@echo "make post      - send this week's recommendations to DISCORD_WEBHOOK_URL"
 	@echo "make returns   - check for returning seasons"
-	@echo "make sync      - sync watched counts from episode checkboxes"
+	@echo "make sync      - sync watched counts from the checkboxes on each show page"
 
 check:   ; cd $(S) && $(PY) doctor.py
 setup:   ; cd $(S) && $(PY) 01_create_databases.py

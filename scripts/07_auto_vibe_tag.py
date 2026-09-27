@@ -9,7 +9,7 @@ seeded with all bank names.
 
 Modes:
   --favorites  → tag only Favorites (preview)
-  --all        → tag all 331 hydrated shows
+  --all        → tag every hydrated show
   --dry        → don't write, just print
 """
 import json, sys, time, os
@@ -20,7 +20,10 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 SHOWS_DS = load_db_ids()['shows']['data_source_id']
 
-with open(os.path.join(BASE_DIR, 'shows_keywords.json')) as f:
+KW_PATH = os.path.join(BASE_DIR, 'shows_keywords.json')
+if not os.path.exists(KW_PATH):
+    sys.exit('shows_keywords.json not found. Run `python3 05_fetch_keywords.py` first.')
+with open(KW_PATH) as f:
     KW = json.load(f)
 
 

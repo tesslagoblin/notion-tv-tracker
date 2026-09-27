@@ -15,14 +15,14 @@ data_source_id. Both get written to `db_ids.json`.
 | Fav | checkbox | you |
 | Rating | select (1-5 stars) | you |
 | Priority | select (High / Medium / Low) | you |
-| Current S/E | rich_text | you |
+| Current S/E | rich_text | you, `mark_caught_up.py` |
 | Watched Count | number | `sync_watched_count.py`, `mark_caught_up.py` |
 | Total Episodes | number | TMDB |
 | Vibes | multi_select | `07_auto_vibe_tag.py` |
 | Genre | multi_select | TMDB |
 | Streaming | multi_select | `03_streaming_hydrate.py` |
 | Return Status | select | `10_check_returns.py` |
-| Next Episode | rich_text | `10_check_returns.py` |
+| Next Episode | rich_text | `sync_watched_count.py` |
 | Next Air Date | date | `10_check_returns.py` |
 | First Aired | date | TMDB |
 | Last Watched | date | you |
@@ -70,7 +70,7 @@ match what you pay for.
 | Rating | select |
 | TMDB ID | number |
 | Notes | rich_text |
-| Related to Shows | relation |
+| Related to Shows (Episodes) | relation (made by `01 --link`) |
 
 Empty on purpose. Populate a show's episodes when you start watching it, with
 `hydrate_episodes.py`. There is no reason to import ten thousand rows of

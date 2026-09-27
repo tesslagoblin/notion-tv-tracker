@@ -4,12 +4,16 @@ Compares keyword frequency in Favorites+Finished vs the general library
 to surface what she gravitates toward vs what's just "in the library."
 """
 import os
+import sys
 import json
 from collections import Counter
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-with open(os.path.join(BASE_DIR, 'shows_keywords.json')) as f:
+KW_PATH = os.path.join(BASE_DIR, 'shows_keywords.json')
+if not os.path.exists(KW_PATH):
+    sys.exit('shows_keywords.json not found. Run `python3 05_fetch_keywords.py` first.')
+with open(KW_PATH) as f:
     data = json.load(f)
 
 fav_shows = [s for s in data.values() if s['favorite']]

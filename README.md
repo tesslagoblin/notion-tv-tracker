@@ -29,19 +29,21 @@ what I actually love.
    right now, the cover image, and TMDB keywords.
 3. **Vibes get tagged.** A curated bank of 29 tags like `Dark Comedy`,
    `Chaotic Woman`, `British Awkward` and `Killer Costumes` gets applied
-   automatically from TMDB keywords plus hand-picked whitelists. A show can
-   carry five of them. Stacked across a whole library, these become a map of
-   your taste in a way "Comedy, Drama" never will.
-4. **Progress tracks itself.** Check off episodes and a rollup counts them, or
-   just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
+   automatically from TMDB keywords plus hand-picked whitelists. A show gets
+   every vibe that matches, with no cap, so most carry two or three and a few
+   carry many more. Stacked across a whole library, these become a map of your
+   taste in a way "Comedy, Drama" never will.
+4. **Progress tracks itself.** Check off episodes on the show's page and a sync
+   script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
    the status flips on its own: `Finished` for a show that is over, `Returning`
    for one that is still making episodes.
 5. **Every Sunday it tells me what is new.** One script pulls upcoming and
    recent releases from TMDB, scores them by how much their vibes overlap with
    my favorites, drops anything already in the library or recommended in the
-   last six weeks, and posts the top picks with posters and a reason.
-6. **And what is coming back.** Another script checks shows I am caught up on
-   and flags returning seasons within two weeks.
+   last six weeks, and posts the top picks with a reason to a Discord channel
+   through a webhook.
+6. **And what is coming back.** Another script refreshes return status and next
+   air dates, then lists upcoming new episodes, starred where I am caught up.
 
 <!-- screenshot: Weekly digest -> images/02-weekly-digest.png -->
 
@@ -77,7 +79,8 @@ You need a Notion account and a free TMDB key.
    not tell you.
 3. Get a TMDB v3 key at
    [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api).
-4. Copy `.env.example` to `.env` and fill it in.
+4. Copy `.env.example` to `.env` and fill it in. `DISCORD_WEBHOOK_URL` is
+   optional and only needed for `make post`.
 5. Open `scripts/01_create_databases.py` and edit `MY_SERVICES` to the streaming
    services you actually pay for. That list drives the Available Now formula.
 6. Create the databases:
@@ -103,7 +106,9 @@ You need a Notion account and a free TMDB key.
         make taste
         make digest
 
-   `make digest` is a dry run, it only prints. `make post` actually sends.
+   `make digest` is a dry run, it only prints. `make post` sends it to the
+   Discord webhook in `DISCORD_WEBHOOK_URL`. To get one, open the channel's
+   settings in Discord, go to Integrations, then Webhooks, and copy the URL.
 
 `make help` lists everything. Every target is just a `python3` call, so you can
 skip make entirely and run the scripts directly from `scripts/`.
@@ -142,8 +147,8 @@ skip make entirely and run the scripts directly from `scripts/`.
 
 ## A note on the code
 
-These scripts grew over months of actual use, not as a designed system. They are
-numbered roughly in the order you would run them. They are chatty, they print a
+These scripts were built through months of daily use, each one added when a
+real need showed up. They are numbered roughly in the order you would run them. They are chatty, they print a
 lot, and they are meant to be read and edited rather than installed. If you want
 different vibes, edit `vibe_bank.py`. If you want a different schema, edit
 `01_create_databases.py` before you run it.

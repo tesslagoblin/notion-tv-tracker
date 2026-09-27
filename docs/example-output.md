@@ -47,7 +47,7 @@ Most used vibes:
     84  Dark Comedy
     62  British Awkward
 
-Barely used (2 or fewer): Domestic Drama, Noir
+Barely used (2 or fewer): Travel Doc, Absurdist / Sketch
   Either the keyword needles are too narrow, or the tag is not earning its place.
 
 Average tags per tagged show: 2.5

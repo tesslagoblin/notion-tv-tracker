@@ -8,14 +8,37 @@
 - rent/buy is skipped
 - Overwrites existing Streaming value with fresh data
 
-Usage: python3 12_streaming_hydrate.py [--limit N]
+Usage: python3 03_streaming_hydrate.py [--limit N]
 """
 import os, json, sys, subprocess, urllib.parse, time
-from notion_client import notion, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 TMDB_API_KEY = tmdb_key()
+
+SHOWS_DS = load_db_ids()['shows']['data_source_id']
+
+
+def tmdb_providers(tmdb_id):
+    """Return the US flatrate (subscription) provider names for a TV show.
+
+    free/ads/rent/buy are ignored on purpose, see the module docstring.
+    """
+    q = urllib.parse.urlencode({'api_key': TMDB_API_KEY})
+    url = f'https://api.themoviedb.org/3/tv/{int(tmdb_id)}/watch/providers?{q}'
+    r = subprocess.run(['curl', '-s', url], capture_output=True, text=True, timeout=20)
+    try:
+        data = json.loads(r.stdout)
+    except Exception:
+        return []
+    us = (data.get('results') or {}).get('US') or {}
+    names = []
+    for p in us.get('flatrate') or []:
+        name = p.get('provider_name')
+        if name and name not in names:
+            names.append(name)
+    return names
 
 
 def all_shows():

@@ -3,12 +3,12 @@ Groups by season with heading_2 "Season N", then to_do 'S{N}E{M} - Title' per ep
 Deletes the Episode DB rows after conversion.
 """
 import os
-import sys, json
 from notion_client import notion, load_db_ids
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-EPS_DS = load_db_ids()['episodes']['data_source_id']
+ids = load_db_ids()
+EPS_DS = ids['episodes']['data_source_id']
 SHOWS_DS = ids['shows']['data_source_id']
 
 
@@ -78,7 +78,7 @@ def process_show(show_page_id, show_name):
     for row in eps:
         try:
             notion('DELETE', f'/blocks/{row["id"]}', {})
-        except Exception as ex:
+        except Exception:
             pass
 
     print(f'  ✓ {show_name}: {len(eps)} eps → checkboxes, DB rows removed')

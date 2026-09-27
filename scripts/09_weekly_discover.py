@@ -5,9 +5,10 @@ Runs every Sunday morning:
   2. Query TMDB /discover/tv - new/upcoming with matching genres
   3. Filter out shows already tracked
   4. Rank by (popularity × genre-match × vote_avg)
-  5. Post the top picks to a channel of your choice, with poster + why-it-matches blurb
+  5. Print the top picks, or with --post send them to a Discord webhook
+     (DISCORD_WEBHOOK_URL in .env), each with a why-it-matches blurb
 """
-import os, json, subprocess, time, sys, urllib.parse, datetime, re
+import os, json, subprocess, time, sys, urllib.parse, urllib.request, urllib.error, datetime
 from notion_client import notion, load_db_ids, tmdb_key
 from vibe_bank import VIBE_BANK
 
@@ -17,13 +18,62 @@ TMDB_API_KEY = tmdb_key()
 TMDB_BASE = 'https://api.themoviedb.org/3'
 TMDB_IMG = 'https://image.tmdb.org/t/p/w500'
 
-# Optional: where to post the weekly digest. Leave unset to just print it.
-DISCORD_CHANNEL_ID = os.environ.get('DISCORD_CHANNEL_ID', '')
+# Optional: where --post sends the weekly digest. Leave unset to just print it.
+# Discord: channel settings > Integrations > Webhooks > New Webhook > Copy URL.
+DISCORD_WEBHOOK_URL = os.environ.get('DISCORD_WEBHOOK_URL', '')
+DISCORD_LIMIT = 2000  # Discord's max characters per message
 
 SHOWS_DS = load_db_ids()['shows']['data_source_id']
 
-with open(os.path.join(BASE_DIR, 'taste_profile.json')) as f:
+PROFILE_PATH = os.path.join(BASE_DIR, 'taste_profile.json')
+if not os.path.exists(PROFILE_PATH):
+    sys.exit('taste_profile.json not found. Run `python3 08_taste_profile.py` first.')
+with open(PROFILE_PATH) as f:
     profile = json.load(f)
+
+
+def split_message(msg, limit=DISCORD_LIMIT):
+    """Split on blank lines so a pick never gets cut in half. Falls back to a hard
+    cut only if a single paragraph is longer than the limit."""
+    chunks, cur = [], ''
+    for para in msg.split('\n\n'):
+        while len(para) > limit:
+            if cur:
+                chunks.append(cur)
+                cur = ''
+            chunks.append(para[:limit])
+            para = para[limit:]
+        candidate = f'{cur}\n\n{para}' if cur else para
+        if len(candidate) > limit and cur:
+            chunks.append(cur)
+            cur = para
+        else:
+            cur = candidate
+    if cur:
+        chunks.append(cur)
+    return chunks
+
+
+def post_to_discord(msg, url):
+    """POST the digest to a Discord webhook, split into <=2000 char messages.
+    Returns True if every chunk went through."""
+    for chunk in split_message(msg):
+        req = urllib.request.Request(
+            url, data=json.dumps({'content': chunk}).encode('utf-8'), method='POST',
+            # Discord rejects urllib's default User-Agent, so send a real one.
+            headers={'Content-Type': 'application/json',
+                     'User-Agent': 'notion-tv-tracker (weekly digest)'})
+        try:
+            with urllib.request.urlopen(req, timeout=20):
+                pass
+        except urllib.error.HTTPError as e:
+            print(f'Discord webhook failed: HTTP {e.code} {e.read().decode("utf-8", "replace")[:300]}')
+            return False
+        except urllib.error.URLError as e:
+            print(f'Discord webhook failed: {e.reason}')
+            return False
+        time.sleep(0.5)  # stay well under the webhook rate limit
+    return True
 
 
 def tmdb(path, params):
@@ -249,6 +299,10 @@ def format_pick(show, genre_names, vibes=None):
 
 
 def main():
+    posting = '--post' in sys.argv
+    if posting and (not DISCORD_WEBHOOK_URL or DISCORD_WEBHOOK_URL.startswith('[')):
+        sys.exit('--post needs DISCORD_WEBHOOK_URL in .env. Nothing was sent.')
+
     print('Refreshing exclusion list from Notion...')
     already_have = fresh_exclusion_list()
     print(f'  {len(already_have)} shows already tracked')
@@ -320,10 +374,9 @@ def main():
 
     # Build Discord message
     header = f'📺 **new for the watchlist** - {datetime.date.today().strftime("%b %d")}\n'
-    header += f'_ranked by vibe overlap with your favorites - 📅 aired / ⏳ soon / 🔮 later announced_\n\n'
+    header += '_ranked by vibe overlap with your favorites - 📅 aired / ⏳ soon / 🔮 later announced_\n\n'
     body = '\n\n'.join(f'{i+1}. {format_pick(s, genre_names, vibes)}' for i, (s, vibes) in enumerate(top))
-    footer = '\n\n_react with ➕ on the ones you want, and I\'ll add them to Watchlist_'
-    msg = header + body + footer
+    msg = header + body
 
     # Save preview locally
     with open(os.path.join(BASE_DIR, 'last_discover.json'),'w') as f:
@@ -333,12 +386,9 @@ def main():
             'message': msg,
         }, f, indent=2)
 
-    if '--post' in sys.argv and DISCORD_CHANNEL_ID:
-        # Posting step. This used a local CLI that owns the Discord connection.
-        # Swap in your own sender here (webhook, bot token, email, whatever).
-        subprocess.run(['openclaw','message','send',
-                        '-t',DISCORD_CHANNEL_ID,'--channel','discord',
-                        '-m', msg])
+    if posting:
+        if not post_to_discord(msg, DISCORD_WEBHOOK_URL):
+            sys.exit(1)
         # Only add to rolling exclusion after actually posting so dry-runs don't pollute history
         record_this_week(top)
         print('✓ Posted to your Discord channel')

@@ -10,7 +10,7 @@ Aggregates genre + network + decade + TMDB IDs.
 Writes taste_profile.json for the discover cron to use.
 """
 import json, os
-from collections import Counter, defaultdict
+from collections import Counter
 from notion_client import notion, load_db_ids
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
