@@ -1,0 +1,14 @@
+# Secrets
+.env
+
+# Generated locally, and all of it is personal
+scripts/db_ids.json
+scripts/taste_profile.json
+scripts/shows_keywords.json
+scripts/past_discovers.json
+scripts/last_discover.json
+scripts/*.log
+
+# Python
+__pycache__/
+*.pyc

@@ -1,0 +1,10 @@
+{
+  "shows": {
+    "database_id": "[YOUR_SHOWS_DATABASE_ID]",
+    "data_source_id": "[YOUR_SHOWS_DATA_SOURCE_ID]"
+  },
+  "episodes": {
+    "database_id": "[YOUR_EPISODES_DATABASE_ID]",
+    "data_source_id": "[YOUR_EPISODES_DATA_SOURCE_ID]"
+  }
+}
