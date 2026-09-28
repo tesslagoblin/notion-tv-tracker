@@ -105,7 +105,8 @@ def main():
         upcoming.sort()
         print(f'\n=== Upcoming returns ({len(upcoming)}) ===')
         for d_, title, ep, caught, s in upcoming[:30]:
-            se = f"S{ep.get('season_number'):02d}E{ep.get('episode_number'):02d}"
+            sn, en = ep.get('season_number'), ep.get('episode_number')
+            se = f"S{sn:02d}E{en:02d}" if sn is not None and en is not None else 'next episode'
             marker = '★' if caught else ' '
             print(f'  {marker} {d_}  {title}  {se}  [{s}]')
 

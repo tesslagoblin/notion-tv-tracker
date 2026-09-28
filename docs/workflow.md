@@ -1,6 +1,8 @@
 # Day to day
 
-Every command here has a `make` shortcut. Run `make help` to see them.
+Most commands here have a `make` shortcut (`make help` lists them). The episode
+tools (`hydrate_episodes.py`, `episodes_to_checkboxes.py`, `mark_caught_up.py`)
+run directly with `python3` from `scripts/`.
 
 ## Add a show
 

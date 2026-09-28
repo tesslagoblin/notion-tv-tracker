@@ -125,8 +125,9 @@ def check_schema(notion_key):
             for derived, hint in [('Episodes', 'relation'), ('Watched Episodes', 'rollup'),
                                   ('Progress', 'formula'), ('Available Now', 'formula')]:
                 if derived not in props:
-                    say(WARN, f'shows missing derived field "{derived}" ({hint})',
-                        'run: python3 01_create_databases.py --link')
+                    fix = ('run: python3 01_create_databases.py --link' if derived in ('Episodes', 'Watched Episodes')
+                           else 'created by the first setup run; add it back in Notion or recreate with 01_create_databases.py')
+                    say(WARN, f'shows missing derived field "{derived}" ({hint})', fix)
 
 
 def main():

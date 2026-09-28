@@ -49,7 +49,8 @@ RETURN_STATUS_OPTIONS = [
 
 # Which services count as "I can watch this right now". Edit to match what you pay for,
 # and keep it in sync with AVAILABLE_NOW_FORMULA below.
-MY_SERVICES = ['Netflix', 'Amazon Prime Video', 'Max', 'Apple TV+']
+# Matching is by substring, so 'Apple TV' catches TMDB's 'Apple TV Plus' and 'Max' catches 'HBO Max'.
+MY_SERVICES = ['Netflix', 'Amazon Prime Video', 'Max', 'Apple TV']
 
 
 def _contains_service(name):
