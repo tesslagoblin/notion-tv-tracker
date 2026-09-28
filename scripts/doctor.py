@@ -11,6 +11,9 @@ import json
 import subprocess
 import sys
 
+# Same .env loader every other script uses (repo root, then scripts/).
+from notion_client import load_env
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_IDS = os.path.join(BASE_DIR, 'db_ids.json')
 NOTION_VERSION = '2025-09-03'
@@ -25,19 +28,6 @@ def say(level, msg, fix=None):
         problems.append((msg, fix))
     if fix and level != OK:
         print(f'         -> {fix}')
-
-
-def load_env():
-    """Read .env from the repo root if the vars are not already exported."""
-    envp = os.path.join(os.path.dirname(BASE_DIR), '.env')
-    if not os.path.exists(envp):
-        return
-    for line in open(envp):
-        line = line.strip()
-        if not line or line.startswith('#') or '=' not in line:
-            continue
-        k, v = line.split('=', 1)
-        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
 def http(url, headers):

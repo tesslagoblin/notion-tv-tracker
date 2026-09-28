@@ -12,7 +12,7 @@ Usage: python3 10_check_returns.py [--limit N] [--verbose]
 """
 import os, json, sys, subprocess, time
 from datetime import date
-from notion_client import notion, load_db_ids, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -66,7 +66,11 @@ def main():
 
         d = tmdb(tmdb_id)
         time.sleep(0.05)
-        if not d: continue
+        # TMDB error JSON (bad key, rate limit) has no id. Treating it as data
+        # would blank out Next Air Date, so skip the show instead.
+        if not d or not d.get('id'):
+            print(f'  ✗ {title}: TMDB lookup failed, skipped')
+            continue
 
         tmdb_status = d.get('status', '')
         if tmdb_status == 'Canceled':
@@ -83,7 +87,10 @@ def main():
             props['Total Episodes'] = {'number': new_total}
 
         props = {k: v for k, v in props.items() if v is not None or k == 'Next Air Date'}
-        notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+        r = notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+        if not api_ok(r):
+            print(f'  ✗ {title}: Notion update failed ({api_error(r)})')
+            continue
         updated += 1
         if verbose:
             print(f'  {title}: status={tmdb_status}, next={next_date}, eps={total_ep}→{new_total}')

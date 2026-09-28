@@ -4,13 +4,16 @@ Runs every Sunday morning:
   1. Re-load taste profile (top genres from Notion Shows DB)
   2. Query TMDB /discover/tv - new/upcoming with matching genres
   3. Filter out shows already tracked
-  4. Rank by (popularity × genre-match × vote_avg)
+  4. Tag each candidate with vibes, then rank by popularity, vote_avg, genre
+     match and vibe overlap. A pick has to share a vibe with the shows you are
+     Watching (or your Fav shows, or your whole tagged library if you have
+     neither yet)
   5. Print the top picks, or with --post send them to a Discord webhook
      (DISCORD_WEBHOOK_URL in .env), each with a why-it-matches blurb
 """
 import os, json, subprocess, time, sys, urllib.parse, urllib.request, urllib.error, datetime
-from notion_client import notion, load_db_ids, tmdb_key
-from vibe_bank import VIBE_BANK
+from notion_client import notion, load_db_ids, tmdb_key, api_ok, api_error
+from vibe_bank import match_vibes
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -188,43 +191,57 @@ def discover_new(days_back=60, days_forward=365, min_votes=5):
     return list(results.values()), genre_names
 
 
-def fav_vibe_weights():
-    """How many favorites carry each vibe → weight to boost candidates matching those vibes."""
-    try:
-        with open(os.path.join(BASE_DIR, 'vibe_tag_results.json')) as f:
-            r = json.load(f)
-        from collections import Counter
-        c = Counter()
-        for name, vibes in r['tagged']:
-            for v in vibes:
-                c[v] += 1
-        return dict(c)
-    except FileNotFoundError:
-        return {}
+def library_vibe_weights():
+    """Read the Vibes column off every show in Notion, in one paginated pass.
 
-
-def watching_vibe_weights():
-    """Vibes on currently-Watching shows. Weighted 3x higher than fav vibes since
-    they represent what she's ACTIVELY into right now, not just historical favorites.
-    This is the signal that made Vampire Lestat land - Interview With The Vampire
-    (Supernatural Teen) is currently being watched."""
+    Returns three Counters: vibes on Watching shows, vibes on Fav shows, and
+    vibes across every tagged show in the library."""
     from collections import Counter
-    weights = Counter()
-    try:
-        r = notion('POST', f'/data_sources/{SHOWS_DS}/query', {
-            'filter': {'property': 'Status', 'select': {'equals': 'Watching'}},
-            'page_size': 100,
-        })
+    watching, favs, everything = Counter(), Counter(), Counter()
+    cursor = None
+    while True:
+        body = {'page_size': 100}
+        if cursor: body['start_cursor'] = cursor
+        r = notion('POST', f'/data_sources/{SHOWS_DS}/query', body)
+        if not api_ok(r):
+            print(f'  could not read vibes from Notion: {api_error(r)}')
+            break
         for row in r.get('results', []):
-            for v in row['properties'].get('Vibes', {}).get('multi_select', []):
-                weights[v['name']] += 3  # 3x weight vs fav
-    except Exception:
-        pass
-    return dict(weights)
+            p = row['properties']
+            vibes = [v['name'] for v in p.get('Vibes', {}).get('multi_select', []) or []]
+            status = (p.get('Status', {}).get('select') or {}).get('name')
+            for v in vibes:
+                everything[v] += 1
+                if status == 'Watching':
+                    watching[v] += 1
+                if p.get('Fav', {}).get('checkbox'):
+                    favs[v] += 1
+        if not r.get('has_more'): break
+        cursor = r.get('next_cursor')
+    return watching, favs, everything
 
 
-FAV_VIBES = fav_vibe_weights()
-CURRENT_VIBES = watching_vibe_weights()
+def pick_current_vibes(watching, favs, everything):
+    """The vibes a pick has to share to make the digest, plus a label saying
+    where they came from.
+
+    Vibes on currently-Watching shows are the best signal, since they are what
+    she's ACTIVELY into right now. This is what made Vampire Lestat land -
+    Interview With The Vampire (Supernatural Teen) was being watched. A new
+    library is mostly Watchlist though, so fall back to Fav shows, then to
+    every tagged show, rather than posting an empty digest."""
+    for counts, label in ((watching, 'what you are watching'),
+                          (favs, 'your favorites'),
+                          (everything, 'your whole library')):
+        if counts:
+            return {v: n * 3 for v, n in counts.items()}, label
+    return {}, 'nothing yet (no show has a vibe, run make tag)'
+
+
+_WATCHING, _FAVS, LIBRARY_VIBES = library_vibe_weights()
+# LIBRARY_VIBES: how many shows in the whole library carry each vibe.
+# CURRENT_VIBES: the vibes a pick must overlap with (see pick_current_vibes).
+CURRENT_VIBES, CURRENT_SOURCE = pick_current_vibes(_WATCHING, _FAVS, LIBRARY_VIBES)
 
 # Format/structure vibes rather than taste vibes - a show being a "limited series"
 # or "true crime" doesn't say much about whether you'll like it. Drop these
@@ -232,23 +249,13 @@ CURRENT_VIBES = watching_vibe_weights()
 FORMAT_VIBES = {'Anthology / Limited', 'True Crime'}
 
 
-def candidate_vibes(show_name, keywords):
-    """Same match rules as 11_auto_vibe_tag but for TMDB candidates (no Notion genres/networks)."""
-    matched = []
-    name_low = show_name.lower().strip()
-    for vibe_name, defn in VIBE_BANK.items():
-        whitelist = {s.lower().strip() for s in defn.get('shows', [])}
-        if name_low in whitelist:
-            matched.append(vibe_name); continue
-        hit = False
-        for needle in defn.get('keywords', []):
-            for kw in keywords:
-                if needle.lower() in kw:
-                    hit = True; break
-            if hit: break
-        if hit:
-            matched.append(vibe_name)
-    return matched
+def candidate_vibes(show, keywords):
+    """Same match rules as 07_auto_vibe_tag (vibe_bank.match_vibes), applied to a
+    TMDB candidate. Genres come from its TMDB genre_ids. There is no Streaming
+    column for a show you have not added, so networks rules never fire here."""
+    id_to_name = {gid: name for name, gid in genre_map().items()}
+    genres = [id_to_name[g] for g in (show.get('genre_ids') or []) if g in id_to_name]
+    return match_vibes(show.get('name') or '', keywords, genres)
 
 
 def fetch_keywords(tmdb_id):
@@ -258,8 +265,8 @@ def fetch_keywords(tmdb_id):
 
 
 def score(show, genre_names, kw_cache=None):
-    """Vibe-first scoring, gated on Current-Watching intersection.
-    A pick MUST share ≥1 content vibe with her currently-watching shows
+    """Vibe-first scoring, gated on CURRENT_VIBES (Watching shows, or the
+    fallback). A pick MUST share ≥1 content vibe with those
     or it gets a heavy penalty. This is what makes Vampire Lestat surface
     over generic-crime-limited-series filler."""
     pop = show.get('popularity') or 0
@@ -267,19 +274,19 @@ def score(show, genre_names, kw_cache=None):
     genre_hits = sum(1 for g in show.get('genre_ids') or [] if g in genre_names)
     base = pop * 0.05 + vote * 3 + genre_hits * 5
     if kw_cache and show['id'] in kw_cache:
-        vibes = candidate_vibes(show.get('name',''), kw_cache[show['id']])
+        vibes = candidate_vibes(show, kw_cache[show['id']])
         content_vibes = [v for v in vibes if v not in FORMAT_VIBES]
         if not content_vibes:
             # Only format vibes (Anthology/True Crime) or nothing → not a taste signal
             return base * 0.1, vibes
         cur_hits = [v for v in content_vibes if v in CURRENT_VIBES]
         if not cur_hits:
-            # No overlap with what she's currently watching - deprioritize
+            # No overlap with what she's currently into - deprioritize
             return base * 0.3, vibes
-        fav_score = sum(FAV_VIBES.get(v, 0) for v in content_vibes)
+        lib_score = sum(LIBRARY_VIBES.get(v, 0) for v in content_vibes)
         cur_score = sum(CURRENT_VIBES.get(v, 0) for v in content_vibes)
         multi_bonus = 20 if len(content_vibes) >= 2 else 0
-        return base + fav_score * 3 + cur_score * 8 + multi_bonus, vibes
+        return base + lib_score * 3 + cur_score * 8 + multi_bonus, vibes
     return base * 0.3, []
 
 
@@ -303,6 +310,7 @@ def main():
     if posting and (not DISCORD_WEBHOOK_URL or DISCORD_WEBHOOK_URL.startswith('[')):
         sys.exit('--post needs DISCORD_WEBHOOK_URL in .env. Nothing was sent.')
 
+    print(f'Scoring against vibes from {CURRENT_SOURCE} ({len(CURRENT_VIBES)} vibes)')
     print('Refreshing exclusion list from Notion...')
     already_have = fresh_exclusion_list()
     print(f'  {len(already_have)} shows already tracked')
@@ -374,7 +382,7 @@ def main():
 
     # Build Discord message
     header = f'📺 **new for the watchlist** - {datetime.date.today().strftime("%b %d")}\n'
-    header += '_ranked by vibe overlap with your favorites - 📅 aired / ⏳ soon / 🔮 later announced_\n\n'
+    header += f'_ranked by vibe overlap with {CURRENT_SOURCE} - 📅 aired / ⏳ soon / 🔮 later announced_\n\n'
     body = '\n\n'.join(f'{i+1}. {format_pick(s, genre_names, vibes)}' for i, (s, vibes) in enumerate(top))
     msg = header + body
 

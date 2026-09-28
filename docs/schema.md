@@ -3,8 +3,10 @@
 Two databases. `01_create_databases.py` builds both.
 
 Notion's 2025-09-03 API splits a database into a **database_id** and a
-**data_source_id**. Create pages against the database_id, query against the
-data_source_id. Both get written to `db_ids.json`.
+**data_source_id**. The schema lives on the data source, and the scripts both
+create pages (with the data_source_id as the parent) and query against the
+data_source_id. Both ids get written to `db_ids.json`, the database_id mostly
+so you can find the database again.
 
 ## Shows
 
@@ -21,9 +23,9 @@ data_source_id. Both get written to `db_ids.json`.
 | Vibes | multi_select | `07_auto_vibe_tag.py` |
 | Genre | multi_select | TMDB |
 | Streaming | multi_select | `03_streaming_hydrate.py` |
-| Return Status | select | `10_check_returns.py` |
+| Return Status | select | `add_show.py` when a show is added, refreshed by `10_check_returns.py` |
 | Next Episode | rich_text | `sync_watched_count.py` |
-| Next Air Date | date | `10_check_returns.py` |
+| Next Air Date | date | `add_show.py` when a show is added, refreshed by `10_check_returns.py` |
 | First Aired | date | TMDB |
 | Last Watched | date | you |
 | Runtime (min) | number | TMDB |
@@ -39,10 +41,16 @@ data_source_id. Both get written to `db_ids.json`.
 
 `Watching` / `Returning` / `Paused` / `Watchlist` / `Finished` / `Dropped`
 
-`Watching` flips to `Returning` or `Finished` on its own once Watched Count
-reaches Total Episodes. `Returning` means "caught up on a show that is still
-making episodes", so it is the state that earns you a ping when a new season
-lands. `Finished` means the show is over and so are you.
+`Watching` flips to `Returning` or `Finished` once Watched Count reaches Total
+Episodes and `sync_watched_count.py` runs. Which one it picks comes from Return
+Status: `Ended` gives `Finished`, anything else gives `Returning`. `add_show.py`
+fills Return Status in when you add a show, and `make returns` keeps it current
+as shows get renewed or canceled.
+
+`Returning` means "caught up on a show that is still making episodes". When a
+new season gets a date, `10_check_returns.py` lists it in its upcoming returns,
+starred if you are caught up. That list is printed when you run it, nothing
+gets sent anywhere. `Finished` means the show is over and so are you.
 
 ### Progress
 

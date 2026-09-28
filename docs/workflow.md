@@ -35,7 +35,9 @@ show a checklist of episodes and tick them off as you go.
 
 `episodes_to_checkboxes.py` works on every show with Status `Watching`. It
 writes one `S01E01 - Title` checkbox per episode into the show's page, grouped
-by season, then deletes the Episode rows it converted.
+by season, then deletes the Episode rows it converted. It only deletes once
+Notion has confirmed the checkboxes were written. If that fails for a show, it
+says so, leaves that show's rows alone and moves on to the next one.
 
 `sync_watched_count.py` looks at every show that is `Watching` or `Paused` and
 reads the checkboxes in the page body, not the Episodes database. It writes the

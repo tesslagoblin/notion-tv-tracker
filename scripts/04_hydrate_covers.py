@@ -4,7 +4,7 @@ Gallery view previews read the page cover, not the Poster property. Shows added
 without a cover show blank cards. This backfills.
 """
 import os
-from notion_client import notion, load_db_ids
+from notion_client import notion, load_db_ids, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -32,9 +32,12 @@ def main():
             skipped += 1
             print(f' - {title}: no Poster url, skipped')
             continue
-        notion('PATCH', f'/pages/{pg["id"]}', {
+        r = notion('PATCH', f'/pages/{pg["id"]}', {
             'cover': {'type': 'external', 'external': {'url': poster}}
         })
+        if not api_ok(r):
+            print(f'  ✗ {title}: {api_error(r)}')
+            continue
         fixed += 1
         print(f'  ✓ {title}')
     print(f'\n{fixed} covers set, {skipped} skipped (no Poster url).')

@@ -11,7 +11,7 @@
 Usage: python3 03_streaming_hydrate.py [--limit N]
 """
 import os, json, sys, subprocess, urllib.parse, time
-from notion_client import notion, load_db_ids, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -24,6 +24,8 @@ def tmdb_providers(tmdb_id):
     """Return the US flatrate (subscription) provider names for a TV show.
 
     free/ads/rent/buy are ignored on purpose, see the module docstring.
+    Returns None if TMDB did not answer properly, so a bad call never wipes
+    the Streaming column.
     """
     q = urllib.parse.urlencode({'api_key': TMDB_API_KEY})
     url = f'https://api.themoviedb.org/3/tv/{int(tmdb_id)}/watch/providers?{q}'
@@ -31,7 +33,9 @@ def tmdb_providers(tmdb_id):
     try:
         data = json.loads(r.stdout)
     except Exception:
-        return []
+        return None
+    if not isinstance(data, dict) or 'results' not in data:
+        return None  # TMDB error JSON (bad key, rate limit), not "no providers"
     us = (data.get('results') or {}).get('US') or {}
     names = []
     for p in us.get('flatrate') or []:
@@ -58,7 +62,7 @@ def main():
     if '--limit' in sys.argv:
         limit = int(sys.argv[sys.argv.index('--limit') + 1])
 
-    updated, empty, skipped = 0, 0, 0
+    updated, empty, skipped, failed = 0, 0, 0, 0
     for i, pg in enumerate(all_shows()):
         if limit and i >= limit: break
         title = ''.join(t['plain_text'] for t in pg['properties']['Name']['title'])
@@ -69,9 +73,17 @@ def main():
 
         provs = tmdb_providers(tmdb_id)
         time.sleep(0.05)  # gentle TMDB throttle
+        if provs is None:
+            failed += 1
+            print(f'  ✗ {title}: TMDB lookup failed, left Streaming alone')
+            continue
 
         payload = {'properties': {'Streaming': {'multi_select': [{'name': p} for p in provs]}}}
-        notion('PATCH', f'/pages/{pg["id"]}', payload)
+        r = notion('PATCH', f'/pages/{pg["id"]}', payload)
+        if not api_ok(r):
+            failed += 1
+            print(f'  ✗ {title}: Notion update failed ({api_error(r)})')
+            continue
         if provs:
             updated += 1
             if i % 20 == 0:
@@ -79,7 +91,7 @@ def main():
         else:
             empty += 1
 
-    print(f'\nDone: {updated} updated, {empty} no US providers, {skipped} skipped (no TMDB ID)')
+    print(f'\nDone: {updated} updated, {empty} no US providers, {skipped} skipped (no TMDB ID), {failed} failed')
 
 if __name__ == '__main__':
     main()

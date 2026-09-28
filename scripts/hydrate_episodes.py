@@ -7,7 +7,7 @@ Reads seasons from TMDB, creates one Episode row per episode, related to the Sho
 Skips seasons already fully populated (idempotent - safe to re-run).
 """
 import os, json, sys, subprocess, urllib.parse, time
-from notion_client import notion, load_db_ids, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -81,10 +81,14 @@ def create_episode(show_page_id, season, ep_num, name, air_date, runtime, tmdb_e
         props['Runtime (min)'] = {'number': runtime}
     if tmdb_ep_id:
         props['TMDB ID'] = {'number': tmdb_ep_id}
-    notion('POST', '/pages', {
+    r = notion('POST', '/pages', {
         'parent': {'type': 'data_source_id', 'data_source_id': EPS_DS},
         'properties': props,
     })
+    if not api_ok(r):
+        print(f'    ✗ S{season}E{ep_num}: {api_error(r)}')
+        return False
+    return True
 
 
 def hydrate(show_page_id, tmdb_id):
@@ -112,14 +116,14 @@ def hydrate(show_page_id, tmdb_id):
                 continue
             if (s_num, e_num) in existing:
                 continue
-            create_episode(
+            if create_episode(
                 show_page_id, s_num, e_num,
                 ep.get('name'),
                 ep.get('air_date'),
                 ep.get('runtime'),
                 ep.get('id'),
-            )
-            created += 1
+            ):
+                created += 1
         time.sleep(0.05)  # gentle TMDB throttle
         print(f'    S{s_num}: {len(detail["episodes"])} eps ({created} new so far)')
     return created

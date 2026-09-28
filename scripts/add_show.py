@@ -7,7 +7,9 @@ Usage:
 
 For each name:
   1. Search TMDB /search/tv
-  2. Create Notion Shows page with Status=Watchlist + hydrated TMDB fields + cover
+  2. Create Notion Shows page with Status=Watchlist + hydrated TMDB fields + cover,
+     including Return Status and Next Air Date, so a show you catch up on later
+     already knows whether it should land on Finished or Returning
   3. Skip (with warning) if a page with that Name already exists
 
 Without --pick it takes TMDB's first result, which is wrong more often than you
@@ -18,6 +20,8 @@ always prints the matched title and year so you can catch it. When in doubt use
 After creation, run these to complete hydration:
   python3 03_streaming_hydrate.py
   python3 05_fetch_keywords.py && python3 07_auto_vibe_tag.py --all
+Return Status goes stale as shows get renewed or canceled. 10_check_returns.py
+(`make returns`) refreshes it for the whole library.
 """
 import os, sys, json, subprocess, time, urllib.parse
 from notion_client import notion, load_db_ids, tmdb_key
@@ -100,6 +104,15 @@ def build_properties(name, details):
     genres = [g['name'] for g in (details.get('genres') or [])][:6]
     if genres:
         props['Genre'] = {'multi_select': [{'name': g} for g in genres]}
+    # Same rule as 10_check_returns.py: Canceled folds into Ended.
+    tmdb_status = details.get('status') or ''
+    if tmdb_status == 'Canceled':
+        tmdb_status = 'Ended'
+    if tmdb_status:
+        props['Return Status'] = {'select': {'name': tmdb_status}}
+    next_date = (details.get('next_episode_to_air') or {}).get('air_date')
+    if next_date:
+        props['Next Air Date'] = {'date': {'start': next_date}}
     return props, poster
 
 

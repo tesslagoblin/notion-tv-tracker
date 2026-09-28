@@ -108,6 +108,12 @@ def build_update(details):
     genres = [g['name'] for g in (details.get('genres') or [])][:6]
     if genres:
         props['Genre'] = {'multi_select': [{'name': g} for g in genres]}
+    # Same rule as 10_check_returns.py: Canceled folds into Ended.
+    tmdb_status = details.get('status') or ''
+    if tmdb_status == 'Canceled':
+        tmdb_status = 'Ended'
+    if tmdb_status:
+        props['Return Status'] = {'select': {'name': tmdb_status}}
     return props
 
 

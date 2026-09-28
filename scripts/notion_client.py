@@ -83,5 +83,24 @@ def notion(method, path, payload=None):
         return {'raw': r.stdout, 'err': r.stderr}
 
 
+def api_ok(r):
+    """True if a notion() response looks like a real success.
+
+    notion() never raises. A failed call comes back as Notion's error JSON
+    ({"object": "error", ...}) or as {'raw': ...} when curl got nothing usable,
+    so anything that writes or deletes has to check this before trusting it.
+    """
+    return isinstance(r, dict) and r.get('object') not in (None, 'error') and 'raw' not in r
+
+
+def api_error(r):
+    """Short printable reason for a failed notion() call."""
+    if not isinstance(r, dict):
+        return repr(r)[:200]
+    if r.get('object') == 'error':
+        return f"{r.get('status')} {r.get('code')}: {r.get('message')}"[:300]
+    return json.dumps(r)[:300]
+
+
 def title(text):
     return [{'type': 'text', 'text': {'content': text}}]

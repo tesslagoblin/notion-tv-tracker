@@ -12,7 +12,7 @@ For each show with Status in {Watching, Paused}:
 Idempotent - safe to run repeatedly.
 """
 import os
-from notion_client import notion, load_db_ids
+from notion_client import notion, load_db_ids, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -48,14 +48,23 @@ def next_status(current, watched, total_ep, return_status):
         return 'Finished'
     return 'Returning'
 
+def active_shows():
+    """Every Watching or Paused show, paginated."""
+    cursor = None
+    while True:
+        q = {'filter': {'or': [
+            {'property': 'Status', 'select': {'equals': 'Watching'}},
+            {'property': 'Status', 'select': {'equals': 'Paused'}},
+        ]}, 'page_size': 100}
+        if cursor: q['start_cursor'] = cursor
+        r = notion('POST', f'/data_sources/{SHOWS_DS}/query', q)
+        yield from r.get('results', [])
+        if not r.get('has_more'): break
+        cursor = r.get('next_cursor')
+
 def main():
-    q = {'filter': {'or': [
-        {'property': 'Status', 'select': {'equals': 'Watching'}},
-        {'property': 'Status', 'select': {'equals': 'Paused'}},
-    ]}, 'page_size': 100}
-    r = notion('POST', f'/data_sources/{SHOWS_DS}/query', q)
     updated = 0
-    for pg in r.get('results', []):
+    for pg in active_shows():
         title = ''.join(t['plain_text'] for t in pg['properties']['Name']['title'])
         cur_count = pg['properties'].get('Watched Count', {}).get('number') or 0
         cur_next = ''.join(t.get('plain_text', '') for t in pg['properties'].get('Next Episode', {}).get('rich_text', []))
@@ -76,7 +85,10 @@ def main():
         if new_st:
             props['Status'] = {'select': {'name': new_st}}
         if props:
-            notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+            r = notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+            if not api_ok(r):
+                print(f'  ✗ {title}: update failed ({api_error(r)})')
+                continue
             changes = []
             if 'Watched Count' in props: changes.append(f'count → {checked}')
             if 'Next Episode' in props: changes.append(f'next → {next_label}')

@@ -1,8 +1,11 @@
 """Apply the Vibes tag bank to shows.
 
-For each show, check every vibe:
- - if show name is on the vibe's whitelist → match
- - or if any of the vibe's keywords are in the show's TMDB keywords → match
+For each show, check every vibe (rules live in vibe_bank.show_matches_vibe):
+ - show name on the vibe's anti_shows → never tagged
+ - show name on the vibe's whitelist → match
+ - otherwise, if the vibe lists genres, the show needs at least one of them, and then
+   - any of the vibe's keywords is a whole word/phrase in the show's TMDB keywords → match
+   - or the show's Streaming column has one of the vibe's networks → match
 
 First run adds the 'Vibes' multi-select property to the Shows DB if missing,
 seeded with all bank names.
@@ -14,7 +17,7 @@ Modes:
 """
 import json, sys, time, os
 from notion_client import notion, load_db_ids
-from vibe_bank import VIBE_BANK
+from vibe_bank import VIBE_BANK, match_vibes
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,30 +28,6 @@ if not os.path.exists(KW_PATH):
     sys.exit('shows_keywords.json not found. Run `python3 05_fetch_keywords.py` first.')
 with open(KW_PATH) as f:
     KW = json.load(f)
-
-
-def normalize(s):
-    return s.lower().replace('...','').replace('…','').replace('\u2019',"'").strip()
-
-
-def show_matches_vibe(show_name, show_keywords, show_genres, show_networks, vibe_def):
-    """Return True if any of the match rules hit."""
-    # 1) whitelist by name
-    whitelist = {normalize(x) for x in vibe_def.get('shows', [])}
-    if normalize(show_name) in whitelist:
-        return True
-    # 2) keyword substring match
-    for kw_needle in vibe_def.get('keywords', []):
-        needle = kw_needle.lower()
-        for sk in show_keywords:
-            if needle in sk:
-                return True
-    # 3) network match (used for British Awkward)
-    if vibe_def.get('networks'):
-        want = set(vibe_def['networks'])
-        if want & set(show_networks or []):
-            return True
-    return False
 
 
 def ensure_vibes_property():
@@ -107,13 +86,10 @@ def tag_row(row, dry=False):
     tmdb_id = p.get('TMDB ID',{}).get('number')
     keywords = KW.get(str(int(tmdb_id)) if tmdb_id else '', {}).get('keywords', [])
     genres = [g['name'] for g in p.get('Genre',{}).get('multi_select',[]) or []]
-    networks = [n['name'] for n in p.get('Streaming',{}).get('multi_select',[]) or []]
+    streaming = [n['name'] for n in p.get('Streaming',{}).get('multi_select',[]) or []]
     existing = [v['name'] for v in p.get('Vibes',{}).get('multi_select',[]) or []]
 
-    matched = []
-    for vibe_name, defn in VIBE_BANK.items():
-        if show_matches_vibe(name, keywords, genres, networks, defn):
-            matched.append(vibe_name)
+    matched = match_vibes(name, keywords, genres, streaming)
 
     if not matched:
         return name, [], []

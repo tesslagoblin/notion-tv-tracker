@@ -1,14 +1,23 @@
 """Curated Vibes tag bank + auto-tag rules.
 
-Each vibe has:
- - keywords: TMDB keyword substrings that hint at this vibe
- - shows: explicit whitelist of shows in my library that fit
- - genres: TMDB genres that must be present (any-of)
- - anti_shows: shows that would false-positive on keywords but shouldn't be tagged
+Each vibe can have:
+ - keywords: TMDB keywords or phrases that hint at this vibe. Matched as whole
+   words, so 'drag' hits 'drag queen' but not 'dragon'
+ - shows: explicit whitelist of shows in my library that fit. Always tagged
+ - genres: TMDB genres, at least one of which must be on the show (any-of) for
+   the keyword or networks rules to count. Whitelisted shows skip this check
+ - networks: names matched against the show's Streaming column, so these are
+   streaming services ('Netflix', 'Hulu'), not broadcasters like BBC One.
+   Nothing stores the original broadcaster
+ - anti_shows: shows that would false-positive but shouldn't be tagged. Beats
+   everything else, whitelist included
 
 Auto-tagger checks a show against every vibe and applies each match.
 The bank is intentionally opinionated. Prune it or add your own tags.
+
+The whitelists are my real library, left in on purpose as a starting point.
 """
+import re
 
 VIBE_BANK = {
     # ─── COMEDY FLAVORS ───────────────────────────────────────
@@ -25,7 +34,9 @@ VIBE_BANK = {
         'shows': ['The Inbetweeners','Peep Show','The Office (UK)','Fleabag',
                   'This Country','Derry Girls','Am I Being Unreasonable?',
                   'Friday Night Dinner','Fresh Meat','Gavin & Stacey'],
-        'networks': ['Channel 4','BBC One','BBC Two','BBC Three'],
+        # There used to be a networks list of Channel 4 / BBC One / BBC Two /
+        # BBC Three here. It never matched anything, because networks is checked
+        # against the Streaming column and those are broadcasters, not services.
     },
     'Dark Comedy': {
         'keywords': ['dark comedy','black comedy','satire'],
@@ -83,7 +94,7 @@ VIBE_BANK = {
                   'Hannah Montana','Smallville','Greek','Revenge','Nip/Tuck'],
     },
     'Supernatural Teen': {
-        'keywords': ['supernatural','witch','vampire','teen witch'],
+        'keywords': ['supernatural','witch','witches','witchcraft','vampire','vampires','teen witch'],
         'shows': ['Buffy the Vampire Slayer','Charmed','The Vampire Diaries',
                   'The Originals','Legacies','Sabrina, the Teenage Witch',
                   'Chilling Adventures of Sabrina','Wednesday','Locke & Key',
@@ -159,7 +170,7 @@ VIBE_BANK = {
                   'X-Men \'97','My Lady Jane'],
     },
     'Witchy / Occult': {
-        'keywords': ['witch','magic','occult','coven'],
+        'keywords': ['witch','witches','witchcraft','magic','occult','coven'],
         'shows': ['Buffy the Vampire Slayer','Charmed','Chilling Adventures of Sabrina',
                   'Sabrina, the Teenage Witch','What We Do in the Shadows',
                   'A Discovery of Witches','Practical Magic','American Horror Story: Coven'],
@@ -248,3 +259,53 @@ VIBE_BANK = {
                   'Lost Cities With Albert Lin'],
     },
 }
+
+# ─── MATCHING ─────────────────────────────────────────────────
+# Shared by 07_auto_vibe_tag.py (your library) and 09_weekly_discover.py
+# (new TMDB candidates), so both tag the same way.
+
+def normalize(s):
+    return (s or '').lower().replace('...', '').replace('…', '').replace('’', "'").strip()
+
+
+_NEEDLES = {}
+
+
+def keyword_hit(needle, keyword):
+    """Whole-word / whole-phrase match. 'drag' hits 'drag queen' and 'drag',
+    never 'dragon'. 'manhattan, new york' only hits that exact phrase."""
+    pat = _NEEDLES.get(needle)
+    if pat is None:
+        pat = re.compile(r'(?<!\w)' + re.escape(needle.lower().strip()) + r'(?!\w)')
+        _NEEDLES[needle] = pat
+    return bool(pat.search((keyword or '').lower()))
+
+
+def show_matches_vibe(show_name, show_keywords, show_genres, show_streaming, vibe_def):
+    """Return True if this vibe applies to this show."""
+    name = normalize(show_name)
+    # 0) anti_shows always wins
+    if name in {normalize(x) for x in vibe_def.get('anti_shows', [])}:
+        return False
+    # 1) whitelist by name
+    if name in {normalize(x) for x in vibe_def.get('shows', [])}:
+        return True
+    # 2) genres gate the automatic rules below (any-of)
+    want_genres = vibe_def.get('genres')
+    if want_genres and not set(want_genres) & set(show_genres or []):
+        return False
+    # 3) keyword match, whole words only
+    for needle in vibe_def.get('keywords', []):
+        if any(keyword_hit(needle, kw) for kw in show_keywords or []):
+            return True
+    # 4) networks, checked against the Streaming column
+    if vibe_def.get('networks'):
+        if set(vibe_def['networks']) & set(show_streaming or []):
+            return True
+    return False
+
+
+def match_vibes(show_name, show_keywords, show_genres=(), show_streaming=()):
+    """Every vibe in the bank that applies to this show, in bank order."""
+    return [v for v, d in VIBE_BANK.items()
+            if show_matches_vibe(show_name, show_keywords, show_genres, show_streaming, d)]

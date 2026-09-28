@@ -1,6 +1,8 @@
 # What it actually produces
 
-Real output, with my library swapped for generic examples.
+The digest and report output below uses placeholder titles. The vibe
+whitelists in `vibe_bank.py` are my real library, left in on purpose as a
+starting point.
 
 ## The weekly digest
 
@@ -23,7 +25,7 @@ And the message it posts:
 
 ```
 new for the watchlist - Sep 27
-ranked by vibe overlap with your favorites - aired / soon / later announced
+ranked by vibe overlap with what you are watching - aired / soon / later announced
 
 1. Some New Comedy (2026-10-01) soon - Comedy / Drama
 vibes: British Awkward, Ensemble Hangout

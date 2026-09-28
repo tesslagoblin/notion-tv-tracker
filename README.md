@@ -5,7 +5,7 @@ and a weekly "here is what is new that you would actually like" digest.
 
 ## Why I built it
 
-The tracker app I used for years shut down, and its export was broken, so I lost
+The tracker app I used for years, TV Time, was shutting down, and its export was broken, so I lost
 a decade of watch history. I rebuilt the library by hand from screenshots and
 decided that if I was going to do that once, the data should live somewhere I
 own. Notion holds it, TMDB fills in everything tedious, and scripts do the parts
@@ -15,6 +15,16 @@ The other half of the problem: I could never answer "what should I watch
 tonight" from my own list. Genre tags are useless for that. So the tracker
 tags shows by *vibe* instead, and uses those tags to rank new releases against
 what I actually love.
+
+## What it does that TV Time couldn't
+
+- **It knows which streaming services I pay for.** So "what drama on my
+  watchlist can I watch tonight?" skips anything on a service I don't have.
+  No Disney+ right now, so Disney+ shows just don't come up.
+- **It filters by genre.** TV Time couldn't. Every show carries its TMDB
+  genres, so "only comedies" is one filter away.
+- **It tags by vibe.** `Chaotic Woman`, `British Awkward`, `Killer Costumes`.
+  Pick a mood and get a shortlist.
 
 <!-- screenshot: Shows database in Notion -> images/01-shows-database.png -->
 
@@ -35,13 +45,17 @@ what I actually love.
    taste in a way "Comedy, Drama" never will.
 4. **Progress tracks itself.** Check off episodes on the show's page and a sync
    script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
-   the status flips on its own: `Finished` for a show that is over, `Returning`
-   for one that is still making episodes.
+   `make sync` flips the status: `Finished` for a show that is over, `Returning`
+   for one that is still making episodes. It knows which is which from Return
+   Status, which gets filled in from TMDB when you add the show and kept
+   current by `make returns`.
 5. **Every Sunday it tells me what is new.** One script pulls upcoming and
-   recent releases from TMDB, scores them by how much their vibes overlap with
-   my favorites, drops anything already in the library or recommended in the
-   last six weeks, and posts the top picks with a reason to a Discord channel
-   through a webhook.
+   recent releases from TMDB, tags them with the same vibe rules, and scores
+   them by how much their vibes overlap with what I am watching right now. A
+   new library that is mostly Watchlist has nothing marked Watching yet, so it
+   falls back to your Fav shows, then to every tagged show. It drops anything
+   already in the library or recommended in the last six weeks, and posts the
+   top picks with a reason to a Discord channel through a webhook.
 6. **And what is coming back.** Another script refreshes return status and next
    air dates, then lists upcoming new episodes, starred where I am caught up.
 
@@ -109,6 +123,16 @@ You need a Notion account and a free TMDB key.
    `make digest` is a dry run, it only prints. `make post` sends it to the
    Discord webhook in `DISCORD_WEBHOOK_URL`. To get one, open the channel's
    settings in Discord, go to Integrations, then Webhooks, and copy the URL.
+   The digest ranks against what you are Watching, so mark a few shows
+   `Watching` (or tick `Fav`) for the best picks.
+10. Check what is coming back:
+
+        make returns
+
+    This refreshes Return Status and Next Air Date for the whole library and
+    prints upcoming new episodes, starred where you are caught up. New shows
+    already get Return Status when you add them, but renewals and
+    cancellations only show up when you run this. I run it every Sunday.
 
 `make help` lists everything. Every target is just a `python3` call, so you can
 skip make entirely and run the scripts directly from `scripts/`.

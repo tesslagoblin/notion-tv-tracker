@@ -11,7 +11,7 @@ For each show:
 Usage: edit TARGETS below, then python3 mark_caught_up.py
 """
 import os, json, sys, subprocess, time, re
-from notion_client import notion, load_db_ids, tmdb_key
+from notion_client import notion, load_db_ids, tmdb_key, api_ok, api_error
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -131,7 +131,10 @@ def main():
         if new_status == 'Returning' and last_se:
             props['Current S/E'] = {'rich_text': [{'type': 'text', 'text': {'content': last_se}}]}
 
-        notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+        r = notion('PATCH', f'/pages/{pg["id"]}', {'properties': props})
+        if not api_ok(r):
+            print(f'  ✗ {name}: update failed ({api_error(r)}), skipped')
+            continue
 
         # Check off any to_do blocks up to the aired episode
         checked_extra = 0
@@ -141,8 +144,8 @@ def main():
             tgt = (int(m.group(1)), int(m.group(2)))
             for bid, se, was_checked in todos:
                 if se and se <= tgt and not was_checked:
-                    notion('PATCH', f'/blocks/{bid}', {'to_do': {'checked': True}})
-                    checked_extra += 1
+                    if api_ok(notion('PATCH', f'/blocks/{bid}', {'to_do': {'checked': True}})):
+                        checked_extra += 1
 
         print(f'  ✓ {name}: {new_status}, watched={aired}, current={last_se}, todos checked={checked_extra}')
 
