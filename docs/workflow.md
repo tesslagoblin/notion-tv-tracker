@@ -66,6 +66,14 @@ Coverage summary plus a list of every show with no vibes, favorites first.
 Shows land there when TMDB has thin keyword data for them. Fix by adding the
 show to a vibe's `shows` whitelist in `vibe_bank.py`, then re-run the tagger.
 
+## Rewatching something
+
+Tick **Rewatching** and put your place in **Rewatch S/E**. Leave Status on
+`Finished` and leave Watched Count alone, both describe the first time through
+and should stay true. Bump **Times Watched** when you finish a pass.
+
+Nothing automated writes these. They are yours.
+
 ## Weekly
 
     python3 08_taste_profile.py     # rebuild taste weights from the library

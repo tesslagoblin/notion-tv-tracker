@@ -49,14 +49,18 @@ what I actually love.
    for one that is still making episodes. It knows which is which from Return
    Status, which gets filled in from TMDB when you add the show and kept
    current by `make returns`.
-5. **Every Sunday it tells me what is new.** One script pulls upcoming and
+5. **Rewatches get their own lane.** Starting a comfort show over does not wipe
+   out the fact that you finished it. A separate set of fields holds your place
+   this time through and counts how many passes you have made, so a show can
+   honestly be both `Finished` at 100% and `Rewatching` at season 2.
+6. **Every Sunday it tells me what is new.** One script pulls upcoming and
    recent releases from TMDB, tags them with the same vibe rules, and scores
    them by how much their vibes overlap with what I am watching right now. A
    new library that is mostly Watchlist has nothing marked Watching yet, so it
    falls back to your Fav shows, then to every tagged show. It drops anything
    already in the library or recommended in the last six weeks, and posts the
    top picks with a reason to a Discord channel through a webhook.
-6. **And what is coming back.** Another script refreshes return status and next
+7. **And what is coming back.** Another script refreshes return status and next
    air dates, then lists upcoming new episodes, starred where I am caught up.
 
 <!-- screenshot: Weekly digest -> images/02-weekly-digest.png -->
@@ -156,8 +160,6 @@ skip make entirely and run the scripts directly from `scripts/`.
   without me picking keywords by hand.
 - **Let it read my actual viewing.** Everything is self-reported. Pulling from
   streaming service history would make progress tracking automatic.
-- **Track rewatches.** There is nowhere to say "I have seen this four times",
-  which for a comfort show is the most interesting fact about it.
 - **Per-episode ratings that add up.** The Episodes table has a Rating field
   nothing uses yet. Season-level averages would be a nice way to see where a
   show fell apart.

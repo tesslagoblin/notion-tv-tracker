@@ -112,6 +112,13 @@ def create_shows_db():
             'Notes': {'rich_text': {}},
             'Added': {'created_time': {}},
             'Available Now': {'formula': {'expression': AVAILABLE_NOW_FORMULA}},
+            # Rewatch tracking. Deliberately separate from Status and Watched
+            # Count so starting a show over never erases the fact that you
+            # finished it. A rewatch is a second lane, not a reset.
+            'Rewatching': {'checkbox': {}},
+            'Rewatch S/E': {'rich_text': {}},
+            'Rewatch Count': {'number': {'format': 'number'}},
+            'Times Watched': {'number': {'format': 'number'}},
         }},
     })
 

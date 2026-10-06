@@ -32,6 +32,10 @@ so you can find the database again.
 | TMDB ID / TMDB URL / Poster | number / url / url | TMDB |
 | Notes | rich_text | you |
 | Added | created_time | Notion |
+| Rewatching | checkbox | you |
+| Rewatch S/E | rich_text | you |
+| Rewatch Count | number | you |
+| Times Watched | number | you |
 | Episodes | relation -> Episodes | `01 --link` |
 | Watched Episodes | rollup (count checked) | derived |
 | Progress | formula | derived |
@@ -65,6 +69,22 @@ True when a show is on one of your services AND you might actually watch it
 (Watching, Paused or Watchlist). Caught-up and finished shows are excluded so
 the view stays a to-do list. Edit `MY_SERVICES` in `01_create_databases.py` to
 match what you pay for.
+
+### Rewatches
+
+A rewatch is a second lane, not a reset. Starting a show over does not touch
+Status, Watched Count or Progress, so you never lose the fact that you finished
+it. Instead:
+
+- **Rewatching** marks that one is in progress right now
+- **Rewatch S/E** holds your place this time through
+- **Rewatch Count** is how many episodes into the current pass you are
+- **Times Watched** counts complete passes
+
+A show can be `Finished`, 144/144, 100%, and `Rewatching` at season 2 all at
+once, which is the honest description of a comfort show. Filter a view on
+`Rewatching is checked` and you get a shelf of exactly those, each holding your
+spot.
 
 ## Episodes
 
