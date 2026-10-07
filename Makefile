@@ -2,7 +2,7 @@
 PY := python3
 S  := scripts
 
-.PHONY: help check setup link add hydrate tag taste digest post returns sync vibes
+.PHONY: help check setup link add hydrate tag taste digest post returns sync vibes episodes catchup
 
 help:
 	@echo "make check     - verify keys, db ids and Notion schema"
@@ -16,6 +16,8 @@ help:
 	@echo "make digest    - dry run this week's recommendations"
 	@echo "make post      - send this week's recommendations to DISCORD_WEBHOOK_URL"
 	@echo "make returns   - check for returning seasons"
+	@echo "make episodes  - create episode rows for every Watching show"
+	@echo "make catchup   - rewrite Next Episode / Current S/E from Watched Count"
 	@echo "make sync      - sync watched counts from the checkboxes on each show page"
 
 check:   ; cd $(S) && $(PY) doctor.py
@@ -29,4 +31,6 @@ taste:   ; cd $(S) && $(PY) 08_taste_profile.py
 digest:  ; cd $(S) && $(PY) 09_weekly_discover.py
 post:    ; cd $(S) && $(PY) 09_weekly_discover.py --post
 returns: ; cd $(S) && $(PY) 10_check_returns.py
+episodes: ; cd $(S) && $(PY) episodes_as_rows.py --watching
+catchup: ; cd $(S) && $(PY) sync_from_count.py
 sync:    ; cd $(S) && $(PY) sync_watched_count.py

@@ -43,8 +43,10 @@ what I actually love.
    every vibe that matches, with no cap, so most carry two or three and a few
    carry many more. Stacked across a whole library, these become a map of your
    taste in a way "Comedy, Drama" never will.
-4. **Progress tracks itself.** Check off episodes on the show's page and a sync
-   script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
+4. **Progress tracks itself.** Every show you are watching gets one row per
+   episode, so ticking one updates Progress instantly through a Notion rollup
+   with no script involved. There is also a one-tap `+1` button on each gallery
+   card for when you just want to say "watched another one". A sync script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
    `make sync` flips the status: `Finished` for a show that is over, `Returning`
    for one that is still making episodes. It knows which is which from Return
    Status, which gets filled in from TMDB when you add the show and kept
@@ -160,6 +162,10 @@ skip make entirely and run the scripts directly from `scripts/`.
   without me picking keywords by hand.
 - **Let it read my actual viewing.** Everything is self-reported. Pulling from
   streaming service history would make progress tracking automatic.
+- **A button that does the whole job.** The `+1` button writes Watched Count
+  instantly, but Current S/E and Next Episode only catch up when a script runs.
+  Notion buttons cannot call out to TMDB, so closing that gap properly needs
+  either a webhook or Notion gaining real automations.
 - **Per-episode ratings that add up.** The Episodes table has a Rating field
   nothing uses yet. Season-level averages would be a nice way to see where a
   show fell apart.

@@ -66,6 +66,46 @@ Coverage summary plus a list of every show with no vibes, favorites first.
 Shows land there when TMDB has thin keyword data for them. Fix by adding the
 show to a vibe's `shows` whitelist in `vibe_bank.py`, then re-run the tagger.
 
+## Ticking episodes off, and the one-tap button
+
+    python3 episodes_as_rows.py --watching
+    python3 sync_from_count.py
+
+Each show you are watching gets one Episode row per episode, related back to
+the show and ticked up to where you already are.
+
+The reason it is rows and not checkboxes in the page body: a to_do block is
+invisible to Notion formulas, so body checkboxes cannot move Progress without a
+script running. A related row feeds the Watched Episodes rollup, and Progress
+updates the moment you tick one. No script in the loop.
+
+### The +1 button
+
+The nicest version of this is a **Button** property on Shows that bumps
+Watched Count by one, so you can mark an episode straight from a gallery card.
+The Notion API cannot create button properties, so add it by hand once:
+
+New property, type **Button**, then Edit automation: *Edit* -> *This page* ->
+**Watched Count** -> and for the value use Notion's formula AI box with
+"add 1 to the Watched Count property". It produces `This page.Watched Count + 1`.
+
+Type that formula by hand and it will probably fail. In a button formula the
+property has to be reached through `This page.`, and typed quotes often come
+out curly, which the parser rejects without saying so clearly. Let the AI box
+write it.
+
+A second button with *Edit* -> *This page* -> **Status** -> **Dropped** gives
+you a one-tap bail-out that leaves Watched Count alone, so a dropped show still
+remembers how far you got.
+
+### Keeping the labels honest
+
+The button only writes Watched Count, so Current S/E, Next Episode and the row
+ticks go stale the second you tap it. `sync_from_count.py` reads the count,
+works out which episode that is from TMDB, and rewrites all three. It skips any
+show that has not drifted, so a quiet run is a single Notion query and it is
+cheap to run hourly.
+
 ## Rewatching something
 
 Tick **Rewatching** and put your place in **Rewatch S/E**. Leave Status on
