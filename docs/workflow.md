@@ -98,13 +98,24 @@ A second button with *Edit* -> *This page* -> **Status** -> **Dropped** gives
 you a one-tap bail-out that leaves Watched Count alone, so a dropped show still
 remembers how far you got.
 
+### Up Next beats a synced label
+
+Put **Up Next** on your gallery cards, not Next Episode. Up Next is a formula
+over the banked episode rows, so it moves the instant you tap +1. Next Episode
+is written by a script and is only as fresh as the last run.
+
+`sync_from_count.py` is still worth running, because it keeps Current S/E and
+the per-episode ticks straight, but the thing you actually read on the card no
+longer waits for it.
+
 ### Keeping the labels honest
 
 The button only writes Watched Count, so Current S/E, Next Episode and the row
 ticks go stale the second you tap it. `sync_from_count.py` reads the count,
 works out which episode that is from TMDB, and rewrites all three. It skips any
 show that has not drifted, so a quiet run is a single Notion query and it is
-cheap to run hourly.
+cheap to run often. A plain system crontab entry every 5 minutes costs nothing
+and avoids the overhead of waking a larger process just to run one script.
 
 ## Rewatching something
 

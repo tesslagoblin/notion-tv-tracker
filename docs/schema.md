@@ -40,6 +40,7 @@ so you can find the database again.
 | Watched Episodes | rollup (count checked) | derived |
 | Progress | formula | derived |
 | Available Now | formula | derived |
+| Up Next | formula | derived |
 
 ### Status values
 
@@ -62,6 +63,29 @@ A string, not a percent: `12 / 22 · 55%`. It prefers the Episodes rollup when
 episode rows exist and falls back to the plain Watched Count number when they
 do not. An earlier version used a raw percent rollup and it lied constantly for
 shows with only some episodes populated.
+
+### Up Next
+
+The next episode you have not watched, worked out by Notion with no script
+involved.
+
+    if(empty(prop("Episodes")), "",
+      at(sort(prop("Episodes").map(format(current))),
+         if(empty(prop("Watched Count")), 0, prop("Watched Count"))))
+
+Episode rows are titled `S01E01 - Name` with zero padding, so sorting them as
+plain text puts them in air order. Index that list at Watched Count and the
+result is the next one up.
+
+This is the reason episodes are rows rather than checkboxes in the page body. A
+formula can reach into a relation; it cannot see a to_do block. Bank the episode
+names once and every later answer is instant and free.
+
+It also means the +1 button is enough on its own. Tapping it changes Watched
+Count, which moves both Progress and Up Next in the same breath, with nothing
+running in the background.
+
+Shows with no episode rows return an empty string rather than an error.
 
 ### Available Now
 

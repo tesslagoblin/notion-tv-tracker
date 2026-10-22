@@ -46,7 +46,8 @@ what I actually love.
 4. **Progress tracks itself.** Every show you are watching gets one row per
    episode, so ticking one updates Progress instantly through a Notion rollup
    with no script involved. There is also a one-tap `+1` button on each gallery
-   card for when you just want to say "watched another one". A sync script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
+   card, and an **Up Next** formula that reads the banked episode names and
+   tells you the exact next episode, both updating the moment you tap. A sync script counts them, or just set a number. A formula renders `12 / 22 · 55%`. When you hit the end,
    `make sync` flips the status: `Finished` for a show that is over, `Returning`
    for one that is still making episodes. It knows which is which from Return
    Status, which gets filled in from TMDB when you add the show and kept

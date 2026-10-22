@@ -64,6 +64,19 @@ AVAILABLE_NOW_FORMULA = (
     ' or (prop("Status") == "Watchlist"))'
 )
 
+# The next episode you have not watched, computed by Notion itself.
+#
+# Episode rows are titled "S01E01 - Name" with zero padding, so sorting them as
+# text puts them in air order. Index that sorted list at Watched Count and you
+# get the next one up, with no script and no API call. This is why episodes are
+# rows rather than checkboxes in the page body: a formula can reach a relation,
+# but it cannot see a to_do block.
+UP_NEXT_FORMULA = (
+    'if(empty(prop("Episodes")), "", '
+    'at(sort(prop("Episodes").map(format(current))), '
+    'if(empty(prop("Watched Count")), 0, prop("Watched Count"))))'
+)
+
 # Human readable "12 / 22 · 55%". Prefers the Episodes rollup when episode rows
 # exist, falls back to the plain Watched Count number when they do not.
 _WATCHED = 'if(prop("Watched Episodes") > 0, prop("Watched Episodes"), prop("Watched Count"))'
@@ -172,6 +185,11 @@ def link_databases(ids):
         'Progress': {'formula': {'expression': PROGRESS_FORMULA}},
     }})
     print('progress formula:', 'ok' if r.get('object') == 'data_source' else json.dumps(r)[:300])
+
+    r = notion('PATCH', f'/data_sources/{shows_ds}', {'properties': {
+        'Up Next': {'formula': {'expression': UP_NEXT_FORMULA}},
+    }})
+    print('up next formula:', 'ok' if r.get('object') == 'data_source' else json.dumps(r)[:300])
 
 
 def db_id(r):
