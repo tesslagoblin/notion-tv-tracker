@@ -31,6 +31,7 @@ so you can find the database again.
 | Runtime (min) | number | TMDB |
 | TMDB ID / TMDB URL / Poster | number / url / url | TMDB |
 | Notes | rich_text | you |
+| Synopsis | rich_text | `hydrate_synopsis.py` |
 | Added | created_time | Notion |
 | Rewatching | checkbox | you |
 | Rewatch S/E | rich_text | you |

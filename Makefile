@@ -2,7 +2,7 @@
 PY := python3
 S  := scripts
 
-.PHONY: help check setup link add hydrate tag taste digest post returns sync vibes episodes catchup
+.PHONY: help check setup link add hydrate tag taste digest post returns sync vibes episodes catchup status extend synopsis tidy
 
 help:
 	@echo "make check     - verify keys, db ids and Notion schema"
@@ -18,6 +18,10 @@ help:
 	@echo "make returns   - check for returning seasons"
 	@echo "make episodes  - create episode rows for every Watching show"
 	@echo "make catchup   - rewrite Next Episode / Current S/E from Watched Count"
+	@echo "make status    - move shows between Watching / Returning / Finished"
+	@echo "make extend    - top up banked episodes on very long shows"
+	@echo "make synopsis  - fill the Synopsis field from TMDB"
+	@echo "make tidy      - collapse duplicate streaming services"
 	@echo "make sync      - sync watched counts from the checkboxes on each show page"
 
 check:   ; cd $(S) && $(PY) doctor.py
@@ -33,4 +37,8 @@ post:    ; cd $(S) && $(PY) 09_weekly_discover.py --post
 returns: ; cd $(S) && $(PY) 10_check_returns.py
 episodes: ; cd $(S) && $(PY) episodes_as_rows.py --watching
 catchup: ; cd $(S) && $(PY) sync_from_count.py
+status: ; cd $(S) && $(PY) auto_status.py
+extend: ; cd $(S) && $(PY) extend_episodes.py
+synopsis: ; cd $(S) && $(PY) hydrate_synopsis.py
+tidy: ; cd $(S) && $(PY) collapse_streaming.py
 sync:    ; cd $(S) && $(PY) sync_watched_count.py

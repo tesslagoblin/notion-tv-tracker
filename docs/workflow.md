@@ -125,6 +125,49 @@ and should stay true. Bump **Times Watched** when you finish a pass.
 
 Nothing automated writes these. They are yours.
 
+## Letting status look after itself
+
+    python3 auto_status.py
+
+Compares Watched Count against episodes that have actually AIRED, not the TMDB
+total, which counts announced-but-unaired episodes.
+
+- Watching, caught up, show ended -> Finished
+- Watching, caught up, show continuing -> Returning
+- Returning, something new aired -> Watching
+
+So a show you are current on leaves your watching view by itself and comes back
+the day there is something new. Watched Count is never touched either way.
+
+## Very long shows
+
+    python3 extend_episodes.py
+
+Banking one row per episode means one API call per episode, so a 1,000-episode
+show is filled a few seasons at a time. This tops up any Watching show with
+fewer than 75 unwatched rows left ahead of it, capped at 150 rows per run. It is
+what keeps Up Next from going blank on something enormous.
+
+## Housekeeping
+
+    python3 hydrate_synopsis.py    # TMDB blurb on every show, so cards are readable
+    python3 collapse_streaming.py  # fold reseller duplicates into the base brand
+
+TMDB lists every reseller separately, so one show arrives tagged "Paramount+",
+"Paramount+ Amazon Channel" and "Paramount Plus Apple TV channel". Left alone
+the option list grows to the point of being useless; collapsing took one real
+library from 172 options to 55.
+
+## Running it on a schedule
+
+`run_sync.sh` is a plain shell wrapper for the catch-up pass, meant for the
+system crontab every 5 minutes:
+
+    */5 * * * * /path/to/scripts/run_sync.sh
+
+Use the system crontab rather than anything heavier. The work is one small
+Python script and a single Notion query when nothing has changed.
+
 ## Weekly
 
     python3 08_taste_profile.py     # rebuild taste weights from the library

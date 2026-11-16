@@ -122,7 +122,8 @@ def create_shows_db():
             'TMDB ID': {'number': {'format': 'number'}},
             'TMDB URL': {'url': {}},
             'Poster': {'url': {}},
-            'Notes': {'rich_text': {}},
+            'Notes': {'rich_text': {}},  # your own remarks about a show
+            'Synopsis': {'rich_text': {}},  # TMDB blurb, so a gallery card is readable
             'Added': {'created_time': {}},
             'Available Now': {'formula': {'expression': AVAILABLE_NOW_FORMULA}},
             # Rewatch tracking. Deliberately separate from Status and Watched

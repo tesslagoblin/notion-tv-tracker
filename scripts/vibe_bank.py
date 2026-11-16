@@ -212,6 +212,18 @@ VIBE_BANK = {
                   'Schitt\'s Creek','The Good Place','Brooklyn Nine-Nine','Firefly',
                   'Somebody Somewhere','What We Do in the Shadows'],
     },
+    'Cult / True Believers': {
+        'keywords': ['cult', 'cult leader', 'religious cult', 'sect', 'brainwashing',
+                     'commune', 'fundamentalism', 'guru', 'doomsday cult', 'polygamy',
+                     'mormon', 'scientology', 'jehovah'],
+        'shows': ['Wild Wild Country', 'The Vow', 'Midnight Mass', 'Waco',
+                  'Shiny Happy People', 'Keep Sweet: Pray and Obey', 'Seduced',
+                  'Holy Hell', 'Escaping Twin Flames', 'Love Has Won', 'The Path',
+                  'Archive 81', 'Chapelwaite', 'Under the Banner of Heaven'],
+        # These trip the bare "cult" keyword without being about one in any
+        # useful sense. A good reminder that one loose needle poisons a tag.
+        'anti_shows': ['Riverdale', 'Unbreakable Kimmy Schmidt', 'American Horror Story'],
+    },
     'True Crime': {
         'keywords': ['true crime','murder investigation','serial killer'],
         'shows': ['Mare of Easttown','I\'ll Be Gone in the Dark','Making a Murderer',
